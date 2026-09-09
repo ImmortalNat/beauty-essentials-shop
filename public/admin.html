@@ -5,61 +5,278 @@
   <title>Admin - Beauty Essentials</title>
   <link rel="stylesheet" href="/css/styles.css">
   <style>
-    .order-card { background:#fff; border-radius:10px; padding:1.2rem; margin-bottom:1rem; box-shadow:var(--shadow); border-left:6px solid var(--primary); }
-    .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); align-items:center; justify-content:center; z-index:1000; }
-    .modal-content { background:#fff; padding:2rem; border-radius:12px; max-width:480px; width:90%; }
+    .tab-bar{display:flex;gap:.5rem;border-bottom:2px solid #fce7f0;margin-bottom:1.5rem;flex-wrap:wrap}
+    .tab-btn{padding:.8rem 1.1rem;background:none;border:none;font-weight:700;color:#6c757d;cursor:pointer;border-bottom:3px solid transparent}
+    .tab-btn.active{color:#d62865;border-color:#ff4d8d}
+    .admin-card{background:#fff;padding:1.2rem;border-radius:12px;box-shadow:0 4px 20px rgba(255,77,141,.12);margin-bottom:1rem}
+    .order-card{background:#fff;border-radius:12px;padding:1.2rem;margin-bottom:1rem;border-left:6px solid #ff4d8d;box-shadow:0 4px 20px rgba(255,77,141,.1)}
+    .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center}
+    .modal-content{background:#fff;padding:1.5rem;border-radius:12px;width:92%;max-width:480px;max-height:90vh;overflow:auto}
   </style>
 </head>
 <body>
-  <nav class="navbar"><a href="/" class="navbar-brand">🛡️ Admin <span>Beauty Essentials</span></a><ul class="navbar-links"><li><a href="/" target="_blank">View Live Store</a></li></ul></nav>
+  <nav class="navbar">
+    <a href="/" class="navbar-brand">🛡️ Admin <span>Beauty Essentials</span></a>
+    <ul class="navbar-links"><li><a href="/" target="_blank">View Store</a></li></ul>
+  </nav>
+
   <div class="page-container">
-    <div id="loginBox" style="max-width:360px; margin:4rem auto; background:#fff; padding:2rem; border-radius:12px; text-align:center; box-shadow:var(--shadow);">
+    <div id="loginBox" style="max-width:380px;margin:3rem auto;background:#fff;padding:2rem;border-radius:14px;text-align:center;box-shadow:0 4px 20px rgba(255,77,141,.12)">
       <h3>🔐 Admin Login</h3>
-      <input type="password" id="pass" placeholder="Password" style="width:100%; padding:0.8rem; margin:1rem 0; border:1.5px solid var(--secondary); border-radius:6px;">
+      <input type="password" id="pass" placeholder="Password (admin123)" style="width:100%;padding:.8rem;margin:1rem 0;border:1.5px solid #f472b6;border-radius:8px">
       <button class="btn" onclick="init()">Unlock Dashboard</button>
     </div>
 
-    <div id="dash" style="display:none;">
-      <div style="display:flex; justify-content:space-between; margin-bottom:1.5rem; align-items:center;">
-        <h2>📦 Beauty Orders & Deliveries</h2>
-        <button class="btn" style="width:auto; padding:0.5rem 1rem; background:var(--gray-600);" onclick="loadOrders()">🔄 Refresh</button>
+    <div id="dash" style="display:none">
+      <div class="tab-bar">
+        <button class="tab-btn active" onclick="tab('orders',this)">📦 Orders & Progress</button>
+        <button class="tab-btn" onclick="tab('products',this)">🛍️ Products</button>
+        <button class="tab-btn" onclick="tab('brand',this)">🎨 Storefront</button>
       </div>
-      <div id="ordersList">Loading orders...</div>
+
+      <!-- ORDERS -->
+      <div id="ordersTab">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;gap:.5rem;flex-wrap:wrap">
+          <h3>Customer Orders</h3>
+          <button class="btn" style="width:auto;padding:.5rem 1rem;background:#6c757d" onclick="loadOrders()">🔄 Refresh</button>
+        </div>
+        <div id="ordersList">Loading...</div>
+      </div>
+
+      <!-- PRODUCTS -->
+      <div id="productsTab" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;gap:.5rem;flex-wrap:wrap">
+          <h3>Products Catalog</h3>
+          <button class="btn" style="width:auto;background:#10b981;padding:.6rem 1rem" onclick="openModal()">➕ Add Product</button>
+        </div>
+        <div class="products-grid" id="pList" style="padding:0"></div>
+      </div>
+
+      <!-- STOREFRONT -->
+      <div id="brandTab" style="display:none">
+        <form class="admin-card" onsubmit="saveBrand(event)">
+          <h3>🎨 Edit Storefront</h3>
+          <div class="form-group"><label>Store Name</label><input id="sName" required></div>
+          <div class="form-group"><label>Tagline</label><input id="sTagline"></div>
+          <div class="form-group"><label>Top Announcement</label><input id="sAnnounce"></div>
+          <div class="form-group"><label>Hero Title</label><input id="sHero" required></div>
+          <div class="form-group"><label>Hero Subtitle</label><input id="sSub" required></div>
+          <div class="form-group"><label>WhatsApp Number (233...)</label><input id="sWa" required></div>
+          <div class="form-group"><label>MoMo Number 1</label><input id="sPhone1" required></div>
+          <div class="form-group"><label>MoMo Number 2</label><input id="sPhone2"></div>
+          <div class="form-group"><label>MoMo Account Name</label><input id="sMomoName" required></div>
+          <div class="form-group"><label>Shop Address</label><input id="sAddress"></div>
+          <button class="btn" type="submit">💾 Save Storefront</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="m">
+    <div class="modal-content">
+      <h3 id="mTitle">Add Product</h3>
+      <form onsubmit="saveProduct(event)">
+        <input type="hidden" id="pid">
+        <input type="hidden" id="pimgb64">
+        <div class="form-group"><label>Name *</label><input id="pname" required></div>
+        <div class="form-group"><label>Price GH₵ *</label><input type="number" step="0.01" id="pprice" required></div>
+        <div class="form-group"><label>Category *</label>
+          <select id="pcat" style="width:100%;padding:.7rem;border:1.5px solid #f472b6;border-radius:8px">
+            <option>Lips</option><option>Hair Accessories</option><option>Hair Care</option>
+            <option>Hair Tools</option><option>Resell Bundles</option><option>Jewelry</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Image URL or upload below</label><input id="pimg" placeholder="https://..."></div>
+        <div class="form-group"><label>Or upload photo</label><input type="file" accept="image/*" onchange="handleImg(event)"></div>
+        <img id="prev" style="display:none;width:100px;height:100px;object-fit:cover;border-radius:8px;margin-bottom:.8rem">
+        <div class="form-group"><label>Description</label><textarea id="pdesc" rows="3" style="width:100%;padding:.7rem;border:1.5px solid #f472b6;border-radius:8px"></textarea></div>
+        <div style="display:flex;gap:.5rem">
+          <button class="btn" type="submit" style="background:#10b981">Save</button>
+          <button class="btn" type="button" style="background:#6c757d" onclick="closeModal()">Cancel</button>
+        </div>
+      </form>
     </div>
   </div>
 
   <script>
     let P = '';
+    function tab(id, btn) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('ordersTab').style.display = id === 'orders' ? 'block' : 'none';
+      document.getElementById('productsTab').style.display = id === 'products' ? 'block' : 'none';
+      document.getElementById('brandTab').style.display = id === 'brand' ? 'block' : 'none';
+      if (id === 'orders') loadOrders();
+      if (id === 'products') loadProducts();
+      if (id === 'brand') loadBrand();
+    }
+
     async function init() {
       P = document.getElementById('pass').value;
-      const r = await fetch('/api/admin/orders', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({password:P}) });
+      const r = await fetch('/api/admin/orders', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ password: P }) });
       const d = await r.json();
-      if (!d.success) return alert('Wrong password');
+      if (!d.success) return alert(d.message || 'Wrong password');
       document.getElementById('loginBox').style.display = 'none';
       document.getElementById('dash').style.display = 'block';
       loadOrders();
     }
 
     async function loadOrders() {
-      const r = await fetch('/api/admin/orders', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({password:P}) });
+      const r = await fetch('/api/admin/orders', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ password: P }) });
       const d = await r.json();
       const box = document.getElementById('ordersList');
       if (!d.orders.length) return box.innerHTML = '<p>No orders yet.</p>';
 
       box.innerHTML = d.orders.map(o => `
         <div class="order-card">
-          <div style="display:flex; justify-content:space-between;">
+          <div style="display:flex;justify-content:space-between;gap:.5rem;flex-wrap:wrap">
             <strong>Ref: ${o.reference}</strong>
-            <strong style="color:var(--primary-dark); font-size:1.15rem;">GH₵${Number(o.amount).toFixed(2)}</strong>
+            <strong style="color:#d62865">GH₵${Number(o.amount).toFixed(2)}</strong>
           </div>
-          <div style="background:var(--pink-bg); padding:0.8rem; margin:0.8rem 0; border-radius:6px; font-size:0.9rem; line-height:1.6;">
-            👤 <b>Customer:</b> ${o.customerName} (${o.customerEmail})<br>
-            📞 <b>Phone:</b> <a href="https://wa.me/233${(o.phone||'').replace(/^0/,'')}" target="_blank" style="color:#25D366; font-weight:bold;">💬 WhatsApp ${o.phone}</a><br>
-            📍 <b>Location:</b> ${o.address}<br>
-            🛍️ <b>Items:</b> ${o.items}
+          <div style="background:#fff0f5;padding:.8rem;border-radius:8px;margin:.8rem 0;font-size:.9rem;line-height:1.6">
+            👤 <b>${o.customerName}</b> (${o.customerEmail || 'N/A'})<br>
+            📞 <a href="https://wa.me/233${String(o.phone||'').replace(/^0/,'')}" target="_blank" style="color:#25D366;font-weight:700">💬 ${o.phone}</a><br>
+            📍 ${o.address || 'N/A'}<br>
+            🛍️ ${o.items}
+          </div>
+          <label><b>Update Progress</b></label>
+          <select style="width:100%;padding:.55rem;margin:.35rem 0 .6rem;border:1.5px solid #f472b6;border-radius:8px;font-weight:700"
+            onchange="updateProgress('${o.reference}', this.value)">
+            <option value="Awaiting MoMo Verification" ${o.status==='Awaiting MoMo Verification'?'selected':''}>🟡 Awaiting MoMo Verification</option>
+            <option value="Packaging" ${o.status==='Packaging'?'selected':''}>📦 Packaging</option>
+            <option value="Out for Delivery" ${o.status==='Out for Delivery'?'selected':''}>🚚 Out for Delivery</option>
+            <option value="Delivered" ${o.status==='Delivered'?'selected':''}>🟢 Delivered</option>
+          </select>
+          <input id="note_${o.reference}" value="${(o.deliveryNote||'').replace(/"/g,'&quot;')}" placeholder="Delivery note for customer..." style="width:100%;padding:.55rem;border:1.5px solid #f472b6;border-radius:8px;margin-bottom:.5rem">
+          <button class="btn" style="background:#ff4d8d" onclick="saveNote('${o.reference}')">💾 Save Note & Status</button>
+          <div style="margin-top:.5rem;font-size:.85rem;color:#6c757d">Current: <b>${o.status}</b></div>
+        </div>
+      `).join('');
+    }
+
+    async function updateProgress(ref, status) {
+      const noteEl = document.getElementById('note_' + ref);
+      await fetch('/api/admin/update-progress', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: P, reference: ref, status, deliveryNote: noteEl ? noteEl.value : '' })
+      });
+      loadOrders();
+    }
+
+    async function saveNote(ref) {
+      const sel = document.querySelector(`select[onchange*="${ref}"]`);
+      const status = sel ? sel.value : 'Packaging';
+      await updateProgress(ref, status);
+      alert('Order progress updated!');
+    }
+
+    async function loadProducts() {
+      const ps = await (await fetch('/api/products')).json();
+      document.getElementById('pList').innerHTML = ps.map(p => `
+        <div class="admin-card">
+          <img src="${p.image}" style="width:100%;height:150px;object-fit:cover;border-radius:8px">
+          <h4 style="margin:.5rem 0 .2rem">${p.name}</h4>
+          <div style="color:#d62865;font-weight:800">GH₵${Number(p.price).toFixed(2)}</div>
+          <div style="display:flex;gap:.4rem;margin-top:.6rem">
+            <button class="btn" style="padding:.4rem;background:#ff4d8d" onclick='editP(${JSON.stringify(p)})'>Edit</button>
+            <button class="btn" style="padding:.4rem;background:#ef4444" onclick="delP(${p.id})">Delete</button>
           </div>
         </div>
       `).join('');
+    }
+
+    function openModal() {
+      document.getElementById('mTitle').textContent = 'Add Product';
+      ['pid','pname','pprice','pimg','pdesc','pimgb64'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+      document.getElementById('prev').style.display = 'none';
+      document.getElementById('m').style.display = 'flex';
+    }
+    function closeModal(){ document.getElementById('m').style.display='none'; }
+    function editP(p){
+      document.getElementById('mTitle').textContent='Edit Product';
+      document.getElementById('pid').value=p.id;
+      document.getElementById('pname').value=p.name;
+      document.getElementById('pprice').value=p.price;
+      document.getElementById('pcat').value=p.category||'Lips';
+      document.getElementById('pimg').value=p.image||'';
+      document.getElementById('pimgb64').value=p.image||'';
+      document.getElementById('pdesc').value=p.description||'';
+      const prev=document.getElementById('prev'); prev.src=p.image; prev.style.display='block';
+      document.getElementById('m').style.display='flex';
+    }
+    function handleImg(e){
+      const f=e.target.files[0]; if(!f) return;
+      const r=new FileReader();
+      r.onload=ev=>{
+        const img=new Image();
+        img.onload=()=>{
+          const c=document.createElement('canvas'); let w=img.width,h=img.height,m=600;
+          if(w>h){if(w>m){h*=m/w;w=m;}} else {if(h>m){w*=m/h;h=m;}}
+          c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);
+          const b64=c.toDataURL('image/jpeg',.85);
+          document.getElementById('pimgb64').value=b64;
+          document.getElementById('pimg').value=b64;
+          const p=document.getElementById('prev'); p.src=b64; p.style.display='block';
+        };
+        img.src=ev.target.result;
+      };
+      r.readAsDataURL(f);
+    }
+    async function saveProduct(e){
+      e.preventDefault();
+      const image = document.getElementById('pimgb64').value || document.getElementById('pimg').value;
+      if(!image) return alert('Add image URL or upload photo');
+      await fetch('/api/admin/products/save', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ password:P, product:{
+          id: document.getElementById('pid').value,
+          name: document.getElementById('pname').value,
+          price: document.getElementById('pprice').value,
+          category: document.getElementById('pcat').value,
+          image,
+          description: document.getElementById('pdesc').value
+        }})
+      });
+      closeModal(); loadProducts();
+    }
+    async function delP(id){
+      if(!confirm('Delete product?')) return;
+      await fetch('/api/admin/products/delete', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ password:P, productId:id }) });
+      loadProducts();
+    }
+
+    async function loadBrand(){
+      const s = await (await fetch('/api/settings')).json();
+      document.getElementById('sName').value = s.storeName||'';
+      document.getElementById('sTagline').value = s.tagline||'';
+      document.getElementById('sAnnounce').value = s.announcement||'';
+      document.getElementById('sHero').value = s.heroTitle||'';
+      document.getElementById('sSub').value = s.heroSubtitle||'';
+      document.getElementById('sWa').value = s.whatsappNumber||'';
+      document.getElementById('sPhone1').value = s.supportPhone1||'';
+      document.getElementById('sPhone2').value = s.supportPhone2||'';
+      document.getElementById('sMomoName').value = s.momoName||'';
+      document.getElementById('sAddress').value = s.shopAddress||'';
+    }
+    async function saveBrand(e){
+      e.preventDefault();
+      await fetch('/api/admin/settings/save', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ password:P, settings:{
+          storeName: document.getElementById('sName').value,
+          tagline: document.getElementById('sTagline').value,
+          announcement: document.getElementById('sAnnounce').value,
+          heroTitle: document.getElementById('sHero').value,
+          heroSubtitle: document.getElementById('sSub').value,
+          whatsappNumber: document.getElementById('sWa').value,
+          supportPhone1: document.getElementById('sPhone1').value,
+          supportPhone2: document.getElementById('sPhone2').value,
+          momoName: document.getElementById('sMomoName').value,
+          shopAddress: document.getElementById('sAddress').value
+        }})
+      });
+      alert('Storefront saved!');
     }
   </script>
 </body>
