@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Order Placed - Beauty Essentials</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <nav class="navbar"><a href="/" class="navbar-brand">👑 Beauty <span>Essentials</span></a></nav>
+  <div class="page-container" style="max-width: 600px; text-align: center; margin-top: 3rem;">
+    <div style="background: #fff; padding: 2.5rem 2rem; border-radius: 14px; box-shadow: var(--shadow);">
+      <h1 style="font-size: 3.5rem; margin: 0;">🎉</h1>
+      <h2 style="color: var(--primary-dark); margin: 0.5rem 0;">Thank You for Your Order!</h2>
+      <p id="statusMsg" style="color: var(--gray-600);">Verifying payment...</p>
+
+      <div id="txInfo" style="margin: 1.5rem 0; text-align: left; background: var(--pink-bg); padding: 1.2rem; border-radius: 8px; font-size: 0.9rem; line-height: 1.6; border: 1px solid var(--secondary); display:none;"></div>
+
+      <a id="waContact" href="https://wa.me/233548950991" target="_blank" class="contact-btn" style="display:block; text-align:center; margin-top:1rem;">
+        💬 WhatsApp Support (+233 548 950 991)
+      </a>
+
+      <a href="/" class="btn" style="display:block; margin-top:0.8rem; background:var(--gray-600);">Back to Shop</a>
+    </div>
+  </div>
+
+  <script>
+    const ref = new URLSearchParams(window.location.search).get('reference');
+    if (ref) {
+      fetch('/api/orders/' + ref).then(r => r.json()).then(d => {
+        if (d.success) {
+          localStorage.removeItem('shopwave_beauty_cart');
+          const o = d.order;
+          document.getElementById('statusMsg').textContent = 'Your order is confirmed and being prepared for delivery!';
+          document.getElementById('txInfo').style.display = 'block';
+          document.getElementById('txInfo').innerHTML = `
+            <strong>Order Reference:</strong> ${o.reference}<br>
+            <strong>Amount Paid:</strong> GH₵${Number(o.amount).toFixed(2)}<br>
+            <strong>Customer:</strong> ${o.customerName}<br>
+            <strong>Items:</strong> ${o.items}
+          `;
+          document.getElementById('waContact').href = 'https://wa.me/233548950991?text=' + encodeURIComponent('Hi, I just completed order: ' + o.reference);
+        }
+      });
+    }
+  </script>
+</body>
+</html>

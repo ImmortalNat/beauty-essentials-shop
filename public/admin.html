@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin - Beauty Essentials</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <style>
+    .order-card { background:#fff; border-radius:10px; padding:1.2rem; margin-bottom:1rem; box-shadow:var(--shadow); border-left:6px solid var(--primary); }
+    .modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); align-items:center; justify-content:center; z-index:1000; }
+    .modal-content { background:#fff; padding:2rem; border-radius:12px; max-width:480px; width:90%; }
+  </style>
+</head>
+<body>
+  <nav class="navbar"><a href="/" class="navbar-brand">🛡️ Admin <span>Beauty Essentials</span></a><ul class="navbar-links"><li><a href="/" target="_blank">View Live Store</a></li></ul></nav>
+  <div class="page-container">
+    <div id="loginBox" style="max-width:360px; margin:4rem auto; background:#fff; padding:2rem; border-radius:12px; text-align:center; box-shadow:var(--shadow);">
+      <h3>🔐 Admin Login</h3>
+      <input type="password" id="pass" placeholder="Password" style="width:100%; padding:0.8rem; margin:1rem 0; border:1.5px solid var(--secondary); border-radius:6px;">
+      <button class="btn" onclick="init()">Unlock Dashboard</button>
+    </div>
+
+    <div id="dash" style="display:none;">
+      <div style="display:flex; justify-content:space-between; margin-bottom:1.5rem; align-items:center;">
+        <h2>📦 Beauty Orders & Deliveries</h2>
+        <button class="btn" style="width:auto; padding:0.5rem 1rem; background:var(--gray-600);" onclick="loadOrders()">🔄 Refresh</button>
+      </div>
+      <div id="ordersList">Loading orders...</div>
+    </div>
+  </div>
+
+  <script>
+    let P = '';
+    async function init() {
+      P = document.getElementById('pass').value;
+      const r = await fetch('/api/admin/orders', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({password:P}) });
+      const d = await r.json();
+      if (!d.success) return alert('Wrong password');
+      document.getElementById('loginBox').style.display = 'none';
+      document.getElementById('dash').style.display = 'block';
+      loadOrders();
+    }
+
+    async function loadOrders() {
+      const r = await fetch('/api/admin/orders', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({password:P}) });
+      const d = await r.json();
+      const box = document.getElementById('ordersList');
+      if (!d.orders.length) return box.innerHTML = '<p>No orders yet.</p>';
+
+      box.innerHTML = d.orders.map(o => `
+        <div class="order-card">
+          <div style="display:flex; justify-content:space-between;">
+            <strong>Ref: ${o.reference}</strong>
+            <strong style="color:var(--primary-dark); font-size:1.15rem;">GH₵${Number(o.amount).toFixed(2)}</strong>
+          </div>
+          <div style="background:var(--pink-bg); padding:0.8rem; margin:0.8rem 0; border-radius:6px; font-size:0.9rem; line-height:1.6;">
+            👤 <b>Customer:</b> ${o.customerName} (${o.customerEmail})<br>
+            📞 <b>Phone:</b> <a href="https://wa.me/233${(o.phone||'').replace(/^0/,'')}" target="_blank" style="color:#25D366; font-weight:bold;">💬 WhatsApp ${o.phone}</a><br>
+            📍 <b>Location:</b> ${o.address}<br>
+            🛍️ <b>Items:</b> ${o.items}
+          </div>
+        </div>
+      `).join('');
+    }
+  </script>
+</body>
+</html>

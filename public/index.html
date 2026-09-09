@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Beauty Essentials - Resell & Glow</title>
+  <link rel="stylesheet" href="/css/styles.css">
+</head>
+<body>
+  <div class="announcement-bar" id="announcementBar">⚡ RESELL & GLOW! Everything you need to look good, feel good & slay every day! ♥</div>
+
+  <nav class="navbar">
+    <a href="/" class="navbar-brand">👑 Beauty <span>Essentials</span></a>
+    <ul class="navbar-links">
+      <li><a href="/">Home</a></li>
+      <li><a href="#whyLove">Why Us</a></li>
+      <li><a href="/track">Track Order 📦</a></li>
+      <li><a href="/cart" class="cart-icon">🛒 <span class="cart-count" id="cartCount">0</span></a></li>
+    </ul>
+  </nav>
+
+  <header class="hero">
+    <h1 id="heroTitle">Your Beauty Essentials Spot ♥</h1>
+    <p id="heroSubtitle">CUTE. STYLISH. YOU. Everything you need to look good, feel good & slay every day!</p>
+  </header>
+
+  <!-- Why You'll Love It Banner -->
+  <section class="why-love-strip" id="whyLove">
+    <div class="why-love-card">
+      <h2 style="color: var(--primary-dark); margin-bottom: 0.3rem;">Why You'll Love It! ♡</h2>
+      <div class="why-love-grid">
+        <div class="why-item">💖 Trendy & Affordable</div>
+        <div class="why-item">✨ Good Quality Assurance</div>
+        <div class="why-item">🎀 Perfect for Everyday</div>
+        <div class="why-item">🛍️ Great for Reselling & Profit</div>
+        <div class="why-item">👑 Handpicked Just for You!</div>
+        <div class="why-item">🚚 Fast Doorstep Delivery</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Filter Section -->
+  <div class="filter-section">
+    <button class="filter-btn active" onclick="filterCat('all', this)">All Essentials</button>
+    <button class="filter-btn" onclick="filterCat('Lips', this)">Lips 💋</button>
+    <button class="filter-btn" onclick="filterCat('Hair Accessories', this)">Hair Accessories 🎀</button>
+    <button class="filter-btn" onclick="filterCat('Resell Bundles', this)">Resell Packages 🛍️</button>
+    <button class="filter-btn" onclick="filterCat('Jewelry', this)">Jewelry 💍</button>
+  </div>
+
+  <main class="products-grid" id="productsGrid"></main>
+
+  <!-- Contact Us Strip -->
+  <section class="contact-card">
+    <h2 style="color: var(--primary-dark); margin-bottom: 0.5rem;">Let's Glow Together! ♡</h2>
+    <p style="color: var(--gray-600);">Call or WhatsApp us for instant orders, wholesale resell inquiries, and delivery updates:</p>
+    <div class="contact-numbers">
+      <a href="https://wa.me/233548950991" target="_blank" class="contact-btn">💬 WhatsApp +233 548 950 991</a>
+      <a href="https://wa.me/233249356589" target="_blank" class="contact-btn">💬 WhatsApp +233 24 935 6589</a>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <p>&copy; 2025 Beauty Essentials. Resell & Profit. Fast Delivery & Quality You Can Trust.</p>
+  </footer>
+
+  <div class="toast" id="toast"></div>
+  <script src="/js/app.js"></script>
+</body>
+</html>

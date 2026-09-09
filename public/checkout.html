@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Checkout - Beauty Essentials</title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <style>
+    .pay-tab-bar { display: flex; gap: 0.5rem; margin-bottom: 1.2rem; }
+    .pay-tab { flex: 1; padding: 0.8rem; border: none; font-weight: bold; background: #fce7f0; color: var(--primary-dark); cursor: pointer; border-radius: 8px 8px 0 0; text-align: center; }
+    .pay-tab.active { background: var(--primary); color: white; }
+    .direct-momo-box { display: none; background: #fffcf0; border: 1.5px solid #f59e0b; padding: 1.2rem; border-radius: 8px; margin-bottom: 1rem; }
+    .momo-num { background: #1a1a2e; color: #f59e0b; font-family: monospace; font-size: 1.2rem; font-weight: bold; padding: 0.6rem; border-radius: 6px; text-align: center; margin: 0.4rem 0; }
+  </style>
+</head>
+<body>
+  <nav class="navbar"><a href="/" class="navbar-brand">👑 Beauty <span>Essentials</span></a><ul class="navbar-links"><li><a href="/cart">← Back to Cart</a></li></ul></nav>
+  <div class="page-container">
+    <h2 style="margin-bottom: 1.5rem; color: var(--primary-dark);">Checkout & Delivery Details 💖</h2>
+    <div class="checkout-layout">
+      <div class="checkout-form">
+        <div class="pay-tab-bar">
+          <button class="pay-tab active" id="btnOnline" onclick="setPayment('online')">📱 Paystack (MoMo/Card)</button>
+          <button class="pay-tab" id="btnDirect" onclick="setPayment('direct')">💳 Direct MoMo Transfer</button>
+        </div>
+
+        <form id="checkoutForm">
+          <div class="form-group"><label>Full Name *</label><input type="text" id="name" required placeholder="Abena Mensah"></div>
+          <div class="form-group"><label>Email Address *</label><input type="email" id="email" required placeholder="abena@example.com"></div>
+          <div class="form-group"><label>Phone / MoMo Number *</label><input type="tel" id="phone" required placeholder="0548950991"></div>
+          <div class="form-group"><label>Delivery Address / Location *</label><input type="text" id="address" required placeholder="East Legon, Accra"></div>
+
+          <div class="direct-momo-box" id="directBox">
+            <h4 style="color:#b7791f; margin-bottom:0.4rem;">📥 Direct MoMo Transfer Steps:</h4>
+            <p style="font-size:0.85rem; color:#4a5568;">Send the exact total amount to either MTN Mobile Money number:</p>
+            <div class="momo-num">0548950991 / 0249356589</div>
+            <p style="font-size:0.85rem; color:#4a5568;">Paste your MoMo Transaction ID / Reference below after sending:</p>
+            <div class="form-group" style="margin-top:0.6rem;">
+              <input type="text" id="momoTxId" placeholder="e.g. 2481029481">
+            </div>
+          </div>
+
+          <button type="submit" class="btn" id="payBtn" style="font-size:1.1rem; padding: 1rem; margin-top:1rem;">Pay with Paystack 💳</button>
+        </form>
+      </div>
+      <div class="cart-summary" id="orderSummary"></div>
+    </div>
+  </div>
+  <script src="/js/checkout.js"></script>
+</body>
+</html>
