@@ -17,14 +17,7 @@ const DEFAULT_PRODUCTS = [
   { id: 3, name: "Lipstick Set", price: 35, category: "Lips", image: "https://images.unsplash.com/photo-1586495777744-4413f21062fa?w=400", description: "Richly pigmented smooth matte lipstick shades." },
   { id: 4, name: "Pearl Hair Clips", price: 15, category: "Hair Accessories", image: "https://images.unsplash.com/photo-1611080626919-7cf5a9dbab5b?w=400", description: "Elegant pearl-decorated hair pins." },
   { id: 5, name: "Edges Control Cream", price: 30, category: "Hair Care", image: "https://images.unsplash.com/photo-1527799820374-dcf8d9d4a388?w=400", description: "Strong hold edge control for sleek hairline styling." },
-  { id: 6, name: "Resell & Glow Starter Package", price: 150, category: "Resell Bundles", image: "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=400", description: "Wholesale beauty bundle to start your resell business." },
-  { id: 7, name: "Hair Pins Pack", price: 10, category: "Hair Accessories", image: "https://images.unsplash.com/photo-1611080626919-7cf5a9dbab5b?w=400", description: "Durable metallic bobby pins." },
-  { id: 8, name: "Styling Hair Comb Set", price: 15, category: "Hair Tools", image: "https://images.unsplash.com/photo-1590540179852-2110a54f813a?w=400", description: "Wide-tooth and rat-tail styling combs." },
-  { id: 9, name: "Butterfly Hair Clips", price: 18, category: "Hair Accessories", image: "https://images.unsplash.com/photo-1611080626919-7cf5a9dbab5b?w=400", description: "Trendy butterfly clips for a chic look." },
-  { id: 10, name: "Matte Claw Clips", price: 20, category: "Hair Accessories", image: "https://images.unsplash.com/photo-1611080626919-7cf5a9dbab5b?w=400", description: "Strong grip claw clips for bun hairstyles." },
-  { id: 11, name: "Hair Bonds / Bands", price: 12, category: "Hair Accessories", image: "https://images.unsplash.com/photo-1611080626919-7cf5a9dbab5b?w=400", description: "Soft seamless hair ties that won't break hair." },
-  { id: 12, name: "Cute Beaded Bracelets", price: 25, category: "Jewelry", image: "https://images.unsplash.com/photo-1611591475168-a40552ebdbdb?w=400", description: "Stackable pastel beaded charm bracelets." },
-  { id: 13, name: "Gold Ring Stacks", price: 30, category: "Jewelry", image: "https://images.unsplash.com/photo-1605100804763-247f67b3557e?w=400", description: "Trendy multi-piece ring stack set." }
+  { id: 6, name: "Resell & Glow Starter Package", price: 150, category: "Resell Bundles", image: "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?w=400", description: "Wholesale beauty bundle to start your resell business." }
 ];
 
 const DEFAULT_SETTINGS = {
@@ -36,7 +29,7 @@ const DEFAULT_SETTINGS = {
   whatsappNumber: "233548950991",
   supportPhone1: "0548950991",
   supportPhone2: "0249356589",
-  momoName: "Beauty Essentials",
+  momoName: "Mary Appiah / Beauty Essentials",
   supportEmail: "orders@beautyessentials.com",
   shopAddress: "Accra, Ghana"
 };
@@ -60,11 +53,19 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
-app.get('/api/products', (req, res) => res.json(getJson(PRODUCTS_FILE, DEFAULT_PRODUCTS)));
-app.get('/api/settings', (req, res) => res.json(getJson(SETTINGS_FILE, DEFAULT_SETTINGS)));
+// No-cache header middleware for live API responses
+function noCache(req, res, next) {
+  res.header('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.header('Pragma', 'no-cache');
+  res.header('Expires', '0');
+  next();
+}
+
+app.get('/api/products', noCache, (req, res) => res.json(getJson(PRODUCTS_FILE, DEFAULT_PRODUCTS)));
+app.get('/api/settings', noCache, (req, res) => res.json(getJson(SETTINGS_FILE, DEFAULT_SETTINGS)));
 
 // Track order lookup
-app.get('/api/orders/:ref', (req, res) => {
+app.get('/api/orders/:ref', noCache, (req, res) => {
   const ref = (req.params.ref || '').trim();
   const orders = getJson(ORDERS_FILE, []);
   const order = orders.find(o => o.reference && o.reference.toLowerCase() === ref.toLowerCase());
@@ -72,11 +73,11 @@ app.get('/api/orders/:ref', (req, res) => {
   res.status(404).json({ success: false, message: 'Order not found' });
 });
 
-// Direct MoMo only checkout
+// Direct MoMo checkout
 app.post('/api/payment/direct-momo', (req, res) => {
   const { name, email, phone, address, transactionId, amount, itemsSummary, cartItems } = req.body;
   if (!name || !phone || !transactionId || !amount) {
-    return res.status(400).json({ success: false, message: 'Please fill all required fields including MoMo Transaction ID.' });
+    return res.status(400).json({ success: false, message: 'Missing required fields.' });
   }
 
   const orders = getJson(ORDERS_FILE, []);
@@ -94,7 +95,6 @@ app.post('/api/payment/direct-momo', (req, res) => {
     paidAt: new Date().toISOString()
   };
 
-  // Avoid duplicate refs
   const exists = orders.find(o => o.reference.toLowerCase() === newOrder.reference.toLowerCase());
   if (!exists) {
     orders.push(newOrder);
@@ -160,7 +160,6 @@ app.get(['/checkout', '/checkout.html'], (req, res) => res.sendFile(path.join(__
 app.get(['/success', '/success.html'], (req, res) => res.sendFile(path.join(__dirname, '..', 'public', 'success.html')));
 app.get(['/admin', '/admin.html'], (req, res) => res.sendFile(path.join(__dirname, '..', 'public', 'admin.html')));
 
-// Track page ALWAYS works (no Not Found)
 app.get(['/track', '/track.html'], (req, res) => {
   res.send(`<!DOCTYPE html>
 <html lang="en">
