@@ -1,17 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin - Beauty Essentials</title>
   <link rel="stylesheet" href="/css/styles.css">
   <style>
-    .tab-bar{display:flex;gap:.5rem;border-bottom:2px solid #fce7f0;margin-bottom:1.5rem;flex-wrap:wrap}
-    .tab-btn{padding:.8rem 1.1rem;background:none;border:none;font-weight:700;color:#6c757d;cursor:pointer;border-bottom:3px solid transparent}
-    .tab-btn.active{color:#d62865;border-color:#ff4d8d}
-    .admin-card{background:#fff;padding:1.2rem;border-radius:12px;box-shadow:0 4px 20px rgba(255,77,141,.12);margin-bottom:1rem}
-    .order-card{background:#fff;border-radius:12px;padding:1.2rem;margin-bottom:1rem;border-left:6px solid #ff4d8d;box-shadow:0 4px 20px rgba(255,77,141,.1)}
-    .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:1000;align-items:center;justify-content:center}
-    .modal-content{background:#fff;padding:1.5rem;border-radius:12px;width:92%;max-width:480px;max-height:90vh;overflow:auto}
+    .tab-bar { display:flex; gap:.5rem; border-bottom:2px solid #fce7f0; margin-bottom:1.5rem; flex-wrap:wrap; }
+    .tab-btn { padding:.8rem 1.1rem; background:none; border:none; font-weight:700; color:#6c757d; cursor:pointer; border-bottom:3px solid transparent; }
+    .tab-btn.active { color:#d62865; border-color:#ff4d8d; }
+    .admin-card { background:#fff; padding:1.2rem; border-radius:12px; box-shadow:0 4px 20px rgba(255,77,141,.12); margin-bottom:1rem; }
+    .order-card { background:#fff; border-radius:12px; padding:1.2rem; margin-bottom:1rem; border-left:6px solid #ff4d8d; box-shadow:0 4px 20px rgba(255,77,141,.1); }
+    .modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:1000; align-items:center; justify-content:center; }
+    .modal-content { background:#fff; padding:1.5rem; border-radius:12px; width:92%; max-width:480px; max-height:90vh; overflow:auto; }
+    .cloud-badge { background:#d1fae5; color:#065f46; font-size:0.75rem; font-weight:bold; padding:3px 8px; border-radius:12px; display:inline-block; }
   </style>
 </head>
 <body>
@@ -21,39 +23,44 @@
   </nav>
 
   <div class="page-container">
-    <div id="loginBox" style="max-width:380px;margin:3rem auto;background:#fff;padding:2rem;border-radius:14px;text-align:center;box-shadow:0 4px 20px rgba(255,77,141,.12)">
+    <!-- Login Box -->
+    <div id="loginBox" style="max-width:380px; margin:3rem auto; background:#fff; padding:2rem; border-radius:14px; text-align:center; box-shadow:0 4px 20px rgba(255,77,141,.12);">
       <h3>🔐 Admin Login</h3>
-      <input type="password" id="pass" placeholder="Password (admin123)" style="width:100%;padding:.8rem;margin:1rem 0;border:1.5px solid #f472b6;border-radius:8px">
+      <input type="password" id="pass" placeholder="Password (admin123)" style="width:100%; padding:.8rem; margin:1rem 0; border:1.5px solid #f472b6; border-radius:8px;">
       <button class="btn" onclick="init()">Unlock Dashboard</button>
     </div>
 
-    <div id="dash" style="display:none">
+    <!-- Main Dashboard -->
+    <div id="dash" style="display:none;">
       <div class="tab-bar">
         <button class="tab-btn active" onclick="tab('orders',this)">📦 Orders & Progress</button>
         <button class="tab-btn" onclick="tab('products',this)">🛍️ Products</button>
         <button class="tab-btn" onclick="tab('brand',this)">🎨 Storefront</button>
       </div>
 
-      <!-- ORDERS -->
+      <!-- ORDERS TAB -->
       <div id="ordersTab">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;gap:.5rem;flex-wrap:wrap">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; gap:.5rem; flex-wrap:wrap;">
           <h3>Customer Orders</h3>
-          <button class="btn" style="width:auto;padding:.5rem 1rem;background:#6c757d" onclick="loadOrders()">🔄 Refresh</button>
+          <button class="btn" style="width:auto; padding:.5rem 1rem; background:#6c757d;" onclick="loadOrders()">🔄 Refresh</button>
         </div>
         <div id="ordersList">Loading...</div>
       </div>
 
-      <!-- PRODUCTS -->
-      <div id="productsTab" style="display:none">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;gap:.5rem;flex-wrap:wrap">
-          <h3>Products Catalog</h3>
-          <button class="btn" style="width:auto;background:#10b981;padding:.6rem 1rem" onclick="openModal()">➕ Add Product</button>
+      <!-- PRODUCTS TAB -->
+      <div id="productsTab" style="display:none;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; gap:.5rem; flex-wrap:wrap;">
+          <div>
+            <h3 style="margin:0;">Products Catalog</h3>
+            <span class="cloud-badge">☁️ Permanent Image Cloud Active</span>
+          </div>
+          <button class="btn" style="width:auto; background:#10b981; padding:.6rem 1rem;" onclick="openModal()">➕ Add Product</button>
         </div>
-        <div class="products-grid" id="pList" style="padding:0"></div>
+        <div class="products-grid" id="pList" style="padding:0;"></div>
       </div>
 
-      <!-- STOREFRONT -->
-      <div id="brandTab" style="display:none">
+      <!-- STOREFRONT BRANDING TAB -->
+      <div id="brandTab" style="display:none;">
         <form class="admin-card" onsubmit="saveBrand(event)">
           <h3>🎨 Edit Storefront</h3>
           <div class="form-group"><label>Store Name</label><input id="sName" required></div>
@@ -61,7 +68,7 @@
           <div class="form-group"><label>Top Announcement</label><input id="sAnnounce"></div>
           <div class="form-group"><label>Hero Title</label><input id="sHero" required></div>
           <div class="form-group"><label>Hero Subtitle</label><input id="sSub" required></div>
-          <div class="form-group"><label>WhatsApp Number (233...)</label><input id="sWa" required></div>
+          <div class="form-group"><label>WhatsApp Number (e.g. 233548950991)</label><input id="sWa" required></div>
           <div class="form-group"><label>MoMo Number 1</label><input id="sPhone1" required></div>
           <div class="form-group"><label>MoMo Number 2</label><input id="sPhone2"></div>
           <div class="form-group"><label>MoMo Account Name</label><input id="sMomoName" required></div>
@@ -72,27 +79,48 @@
     </div>
   </div>
 
+  <!-- Product Modal -->
   <div class="modal" id="m">
     <div class="modal-content">
       <h3 id="mTitle">Add Product</h3>
       <form onsubmit="saveProduct(event)">
         <input type="hidden" id="pid">
         <input type="hidden" id="pimgb64">
-        <div class="form-group"><label>Name *</label><input id="pname" required></div>
-        <div class="form-group"><label>Price GH₵ *</label><input type="number" step="0.01" id="pprice" required></div>
+
+        <div class="form-group"><label>Product Name *</label><input id="pname" required placeholder="e.g. Lip Gloss"></div>
+        <div class="form-group"><label>Price GH₵ *</label><input type="number" step="0.01" id="pprice" required placeholder="e.g. 25"></div>
+        
         <div class="form-group"><label>Category *</label>
-          <select id="pcat" style="width:100%;padding:.7rem;border:1.5px solid #f472b6;border-radius:8px">
-            <option>Lips</option><option>Hair Accessories</option><option>Hair Care</option>
-            <option>Hair Tools</option><option>Resell Bundles</option><option>Jewelry</option>
+          <select id="pcat" style="width:100%; padding:.7rem; border:1.5px solid #f472b6; border-radius:8px;">
+            <option value="Lips">Lips 💋</option>
+            <option value="Hair Accessories">Hair Accessories 🎀</option>
+            <option value="Hair Care">Hair Care 💇‍♀️</option>
+            <option value="Hair Tools">Hair Tools 💈</option>
+            <option value="Resell Bundles">Resell Bundles 🛍️</option>
+            <option value="Jewelry">Jewelry 💍</option>
+            <option value="Other">Other</option>
           </select>
         </div>
-        <div class="form-group"><label>Image URL or upload below</label><input id="pimg" placeholder="https://..."></div>
-        <div class="form-group"><label>Or upload photo</label><input type="file" accept="image/*" onchange="handleImg(event)"></div>
-        <img id="prev" style="display:none;width:100px;height:100px;object-fit:cover;border-radius:8px;margin-bottom:.8rem">
-        <div class="form-group"><label>Description</label><textarea id="pdesc" rows="3" style="width:100%;padding:.7rem;border:1.5px solid #f472b6;border-radius:8px"></textarea></div>
-        <div style="display:flex;gap:.5rem">
-          <button class="btn" type="submit" style="background:#10b981">Save</button>
-          <button class="btn" type="button" style="background:#6c757d" onclick="closeModal()">Cancel</button>
+
+        <!-- PERMANENT FREE CLOUD IMAGE UPLOADER -->
+        <div class="form-group">
+          <label>Product Photo * (Camera / Gallery / Files)</label>
+          <input type="file" id="prodFile" accept="image/*" onchange="uploadPermanentImage(event)" style="width:100%; padding:0.6rem; border:1.5px dashed #ff4d8d; border-radius:8px; background:#fff0f5;">
+          
+          <div id="uploadProgress" style="display:none; color:#d62865; font-size:0.85rem; font-weight:bold; margin-top:0.4rem;">
+            ⏳ Uploading image to Permanent Cloud...
+          </div>
+
+          <div style="margin-top:0.5rem; text-align:center;">
+            <img id="prev" style="display:none; width:120px; height:120px; object-fit:cover; border-radius:8px; margin:0 auto; border:1px solid #ddd;">
+          </div>
+        </div>
+
+        <div class="form-group"><label>Description</label><textarea id="pdesc" rows="3" style="width:100%; padding:.7rem; border:1.5px solid #f472b6; border-radius:8px;"></textarea></div>
+
+        <div style="display:flex; gap:.5rem;">
+          <button class="btn" id="saveProdBtn" type="submit" style="background:#10b981;">Save Product</button>
+          <button class="btn" type="button" style="background:#6c757d;" onclick="closeModal()">Cancel</button>
         </div>
       </form>
     </div>
@@ -100,6 +128,7 @@
 
   <script>
     let P = '';
+
     function tab(id, btn) {
       document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
@@ -121,6 +150,62 @@
       loadOrders();
     }
 
+    // ================= ☁️ PERMANENT CLOUD IMAGE UPLOADER =================
+    async function uploadPermanentImage(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const progress = document.getElementById('uploadProgress');
+      const saveBtn = document.getElementById('saveProdBtn');
+      progress.style.display = 'block';
+      progress.style.color = '#d62865';
+      progress.textContent = '⏳ Uploading photo to Permanent Cloud...';
+      saveBtn.disabled = true;
+
+      const formData = new FormData();
+      formData.append('image', file);
+
+      try {
+        // ImgBB Free Permanent Cloud API
+        const res = await fetch('https://api.imgbb.com/1/upload?key=c6d1d497c385b00c3b526685f096d299', {
+          method: 'POST',
+          body: formData
+        });
+        const data = await res.json();
+
+        if (data.success && data.data.url) {
+          const permanentUrl = data.data.url;
+          document.getElementById('pimgb64').value = permanentUrl;
+          
+          const preview = document.getElementById('prev');
+          preview.src = permanentUrl;
+          preview.style.display = 'block';
+          
+          progress.style.color = '#10b981';
+          progress.textContent = '✅ Image saved permanently to Cloud!';
+        } else {
+          fallbackBase64(file);
+        }
+      } catch (err) {
+        fallbackBase64(file);
+      } finally {
+        saveBtn.disabled = false;
+      }
+    }
+
+    function fallbackBase64(file) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        document.getElementById('pimgb64').value = e.target.result;
+        const preview = document.getElementById('prev');
+        preview.src = e.target.result;
+        preview.style.display = 'block';
+        document.getElementById('uploadProgress').textContent = '✅ Photo loaded!';
+      };
+      reader.readAsDataURL(file);
+    }
+
+    // ================= ORDERS & PROGRESS =================
     async function loadOrders() {
       const r = await fetch('/api/admin/orders', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ password: P }) });
       const d = await r.json();
@@ -135,7 +220,7 @@
           </div>
           <div style="background:#fff0f5;padding:.8rem;border-radius:8px;margin:.8rem 0;font-size:.9rem;line-height:1.6">
             👤 <b>${o.customerName}</b> (${o.customerEmail || 'N/A'})<br>
-            📞 <a href="https://wa.me/233${String(o.phone||'').replace(/^0/,'')}" target="_blank" style="color:#25D366;font-weight:700">💬 ${o.phone}</a><br>
+            📞 <a href="https://wa.me/233${String(o.phone||'').replace(/^0/,'')}" target="_blank" style="color:#25D366;font-weight:700">💬 WhatsApp ${o.phone}</a><br>
             📍 ${o.address || 'N/A'}<br>
             🛍️ ${o.items}
           </div>
@@ -171,6 +256,7 @@
       alert('Order progress updated!');
     }
 
+    // ================= PRODUCTS =================
     async function loadProducts() {
       const ps = await (await fetch('/api/products')).json();
       document.getElementById('pList').innerHTML = ps.map(p => `
@@ -186,47 +272,32 @@
       `).join('');
     }
 
-    function openModal() {
-      document.getElementById('mTitle').textContent = 'Add Product';
-      ['pid','pname','pprice','pimg','pdesc','pimgb64'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+    function openProductModal() {
+      document.getElementById('mTitle').textContent = 'Upload Product';
+      ['pid','pname','pprice','pdesc','pimgb64'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+      document.getElementById('uploadProgress').style.display = 'none';
       document.getElementById('prev').style.display = 'none';
       document.getElementById('m').style.display = 'flex';
     }
+
     function closeModal(){ document.getElementById('m').style.display='none'; }
+
     function editP(p){
       document.getElementById('mTitle').textContent='Edit Product';
       document.getElementById('pid').value=p.id;
       document.getElementById('pname').value=p.name;
       document.getElementById('pprice').value=p.price;
       document.getElementById('pcat').value=p.category||'Lips';
-      document.getElementById('pimg').value=p.image||'';
       document.getElementById('pimgb64').value=p.image||'';
       document.getElementById('pdesc').value=p.description||'';
       const prev=document.getElementById('prev'); prev.src=p.image; prev.style.display='block';
       document.getElementById('m').style.display='flex';
     }
-    function handleImg(e){
-      const f=e.target.files[0]; if(!f) return;
-      const r=new FileReader();
-      r.onload=ev=>{
-        const img=new Image();
-        img.onload=()=>{
-          const c=document.createElement('canvas'); let w=img.width,h=img.height,m=600;
-          if(w>h){if(w>m){h*=m/w;w=m;}} else {if(h>m){w*=m/h;h=m;}}
-          c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);
-          const b64=c.toDataURL('image/jpeg',.85);
-          document.getElementById('pimgb64').value=b64;
-          document.getElementById('pimg').value=b64;
-          const p=document.getElementById('prev'); p.src=b64; p.style.display='block';
-        };
-        img.src=ev.target.result;
-      };
-      r.readAsDataURL(f);
-    }
+
     async function saveProduct(e){
       e.preventDefault();
-      const image = document.getElementById('pimgb64').value || document.getElementById('pimg').value;
-      if(!image) return alert('Add image URL or upload photo');
+      const image = document.getElementById('pimgb64').value;
+      if(!image) return alert('Please upload a product photo');
       await fetch('/api/admin/products/save', {
         method:'POST', headers:{'Content-Type':'application/json'},
         body: JSON.stringify({ password:P, product:{
@@ -240,12 +311,14 @@
       });
       closeModal(); loadProducts();
     }
+
     async function delP(id){
       if(!confirm('Delete product?')) return;
       await fetch('/api/admin/products/delete', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ password:P, productId:id }) });
       loadProducts();
     }
 
+    // ================= STOREFRONT =================
     async function loadBrand(){
       const s = await (await fetch('/api/settings')).json();
       document.getElementById('sName').value = s.storeName||'';
@@ -259,6 +332,7 @@
       document.getElementById('sMomoName').value = s.momoName||'';
       document.getElementById('sAddress').value = s.shopAddress||'';
     }
+
     async function saveBrand(e){
       e.preventDefault();
       await fetch('/api/admin/settings/save', {
@@ -276,7 +350,7 @@
           shopAddress: document.getElementById('sAddress').value
         }})
       });
-      alert('Storefront saved!');
+      alert('Storefront saved successfully!');
     }
   </script>
 </body>
