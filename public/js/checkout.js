@@ -8,6 +8,38 @@ document.getElementById('orderSummary').innerHTML = `
   <div class="summary-row total"><span>Total</span><span>GH₵${tot.toFixed(2)}</span></div>
 `;
 
+// Dynamically load MoMo numbers and MoMo account name from Admin settings
+async function loadCheckoutSettings() {
+  try {
+    const timestamp = Date.now();
+    const res = await fetch('/api/settings?t=' + timestamp);
+    const settings = await res.json();
+
+    const p1 = settings.supportPhone1 || '0548950991';
+    const p2 = settings.supportPhone2 || '';
+    const momoName = settings.momoName || 'Beauty Essentials';
+
+    const momo1 = document.getElementById('momoDisplay1');
+    if (momo1) momo1.textContent = p1;
+
+    const momo2 = document.getElementById('momoDisplay2');
+    if (momo2) {
+      if (p2 && p2.trim()) {
+        momo2.textContent = p2;
+        momo2.style.display = 'block';
+      } else {
+        momo2.style.display = 'none';
+      }
+    }
+
+    const nameEl = document.getElementById('momoNameDisplay');
+    if (nameEl) nameEl.textContent = momoName;
+
+  } catch (err) {
+    console.error('Error loading checkout settings:', err);
+  }
+}
+
 document.getElementById('checkoutForm').onsubmit = async (e) => {
   e.preventDefault();
   const btn = document.getElementById('payBtn');
@@ -47,3 +79,5 @@ document.getElementById('checkoutForm').onsubmit = async (e) => {
     btn.textContent = 'Submit MoMo Order ✓';
   }
 };
+
+document.addEventListener('DOMContentLoaded', loadCheckoutSettings);
