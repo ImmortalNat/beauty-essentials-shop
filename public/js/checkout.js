@@ -1,48 +1,99 @@
 const cart = JSON.parse(localStorage.getItem('shopwave_beauty_cart') || '[]');
 if (!cart.length) window.location.href = '/cart';
-const tot = cart.reduce((s, i) => s + (i.price * i.qty), 0);
 
-document.getElementById('orderSummary').innerHTML = `
-  <h3>Order Summary</h3>
-  ${cart.map(i => `<div class="summary-row"><span>${i.name} x${i.qty}</span><span>GH₵${(i.price * i.qty).toFixed(2)}</span></div>`).join('')}
-  <div class="summary-row total"><span>Total</span><span>GH₵${tot.toFixed(2)}</span></div>
-`;
+const cartSubtotal = cart.reduce((s, i) => s + (i.price * i.qty), 0);
+let deliveryFee = 0;
+let grandTotal = cartSubtotal;
+let deliveryLocations = [];
 
-// Dynamically load live MoMo settings from Admin
+function renderSummary() {
+  document.getElementById('orderSummary').innerHTML = `
+    <h3>Order Summary</h3>
+    ${cart.map(i => `<div class="summary-row"><span>${i.name} x${i.qty}</span><span>GH₵${(i.price * i.qty).toFixed(2)}</span></div>`).join('')}
+    <div style="border-top: 1px solid var(--gray-200); margin-top: 1rem; padding-top: 1rem;">
+      <div class="summary-row" style="color:var(--gray-600); font-size:0.9rem;"><span>Subtotal:</span><span>GH₵${cartSubtotal.toFixed(2)}</span></div>
+      <div class="summary-row" style="color:var(--primary); font-size:0.9rem; font-weight:bold;"><span>Delivery Fee:</span><span>GH₵${deliveryFee.toFixed(2)}</span></div>
+      <div class="summary-row total"><span>Total to Pay:</span><span>GH₵${grandTotal.toFixed(2)}</span></div>
+    </div>
+  `;
+}
+
+function populateRegions() {
+  const regionSelect = document.getElementById('regionSelect');
+  if (!regionSelect || !deliveryLocations.length) return;
+  const regions = [...new Set(deliveryLocations.map(l => l.region || 'Greater Accra'))];
+  regionSelect.innerHTML = `<option value="">-- Choose Ghana Region --</option>` + regions.map(r => `<option value="${r}">${r} Region</option>`).join('');
+}
+
 async function loadCheckoutSettings() {
   try {
-    const timestamp = Date.now();
-    const res = await fetch('/api/settings?t=' + timestamp);
-    const settings = await res.json();
+    const [setRes, delRes] = await Promise.all([
+      fetch('/api/settings?t=' + Date.now()),
+      fetch('/api/delivery?t=' + Date.now())
+    ]);
+    const s = await setRes.json();
+    deliveryLocations = await delRes.json();
 
-    const momo1 = document.getElementById('momoDisplay1');
-    const momo2 = document.getElementById('momoDisplay2');
-    const momoName = document.getElementById('momoNameDisplay');
-
-    if (momo1) momo1.textContent = settings.supportPhone1 || '0548950991';
-
-    if (momo2) {
-      if (settings.supportPhone2 && settings.supportPhone2.trim().length > 3) {
-        momo2.textContent = settings.supportPhone2.trim();
-        momo2.style.display = 'block';
-      } else {
-        momo2.style.display = 'none';
-      }
+    document.getElementById('momoDisplay1').textContent = s.supportPhone1 || '0548950991';
+    if (s.supportPhone2) {
+      document.getElementById('momoDisplay2').textContent = s.supportPhone2;
+      document.getElementById('momoDisplay2').style.display = 'block';
     }
+    document.getElementById('momoNameDisplay').textContent = s.momoName || 'Beauty Essentials';
 
-    if (momoName) {
-      momoName.textContent = settings.momoName || 'Beauty Essentials';
+    const locSelect = document.getElementById('townSelect');
+    if (deliveryLocations.length === 0) {
+      locSelect.innerHTML = `<option value="Free Delivery">Free Delivery Available (GH₵0.00)</option>`;
+    } else {
+      populateRegions();
     }
-  } catch (err) {
-    console.error('Failed to load checkout settings:', err);
-  }
+    renderSummary();
+  } catch (err) { console.error(err); }
 }
+
+document.addEventListener('change', (e) => {
+  if (e.target && e.target.id === 'regionSelect') {
+    const selectedRegion = e.target.value;
+    const townSelect = document.getElementById('townSelect');
+    if (!selectedRegion) {
+      townSelect.innerHTML = `<option value="">-- Select Region First --</option>`;
+      townSelect.disabled = true;
+      deliveryFee = 0;
+    } else {
+      const towns = deliveryLocations.filter(l => (l.region || 'Greater Accra') === selectedRegion);
+      townSelect.innerHTML = `<option value="">-- Choose Town / Area --</option>` +
+        towns.map(t => `<option value="${t.id}">${t.town} (+ GH₵${Number(t.fee).toFixed(2)})</option>`).join('');
+      townSelect.disabled = false;
+      deliveryFee = 0;
+    }
+    grandTotal = cartSubtotal + deliveryFee;
+    renderSummary();
+  }
+
+  if (e.target && e.target.id === 'townSelect') {
+    const selectedId = Number(e.target.value);
+    const selectedTown = deliveryLocations.find(l => l.id === selectedId);
+    deliveryFee = selectedTown ? Number(selectedTown.fee) : 0;
+    grandTotal = cartSubtotal + deliveryFee;
+    renderSummary();
+  }
+});
 
 document.getElementById('checkoutForm').onsubmit = async (e) => {
   e.preventDefault();
   const btn = document.getElementById('payBtn');
   const txId = document.getElementById('momoTxId').value.trim();
-  if (!txId) return alert('Please enter your MoMo Transaction ID');
+  if (!txId) return alert('Enter your MoMo Transaction ID');
+
+  const reg = document.getElementById('regionSelect')?.value || '';
+  const townId = Number(document.getElementById('townSelect')?.value || 0);
+  const townObj = deliveryLocations.find(l => l.id === townId);
+  const street = document.getElementById('address')?.value.trim() || '';
+  const townName = townObj ? townObj.town : 'General Area';
+  const fullAddress = `${street}, ${townName}, ${reg} Region`;
+
+  let itemsList = cart.map(i => `${i.name} (x${i.qty})`).join(', ');
+  if (deliveryFee > 0) itemsList += ` | Delivery Fee: GH₵${deliveryFee.toFixed(2)}`;
 
   btn.disabled = true;
   btn.textContent = 'Submitting order...';
@@ -55,10 +106,10 @@ document.getElementById('checkoutForm').onsubmit = async (e) => {
         name: document.getElementById('name').value.trim(),
         email: document.getElementById('email').value.trim(),
         phone: document.getElementById('phone').value.trim(),
-        address: document.getElementById('address').value.trim(),
+        address: fullAddress,
         transactionId: txId,
-        amount: tot,
-        itemsSummary: cart.map(i => `${i.name} (x${i.qty})`).join(', '),
+        amount: grandTotal,
+        itemsSummary: itemsList,
         cartItems: cart
       })
     });
@@ -68,13 +119,11 @@ document.getElementById('checkoutForm').onsubmit = async (e) => {
       window.location.href = '/success?reference=' + encodeURIComponent(d.reference);
     } else {
       alert(d.message || 'Submission failed');
-      btn.disabled = false;
-      btn.textContent = 'Submit MoMo Order ✓';
+      btn.disabled = false; btn.textContent = 'Submit MoMo Order ✓';
     }
   } catch (err) {
-    alert('Network error. Please try again.');
-    btn.disabled = false;
-    btn.textContent = 'Submit MoMo Order ✓';
+    alert('Network error. Try again.');
+    btn.disabled = false; btn.textContent = 'Submit MoMo Order ✓';
   }
 };
 
