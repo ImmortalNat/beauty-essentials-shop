@@ -39,15 +39,12 @@
     </div>
   </section>
 
-  <!-- Filter Section -->
-  <div class="filter-section">
-    <button class="filter-btn active" onclick="filterCat('all', this)">All Essentials</button>
-    <button class="filter-btn" onclick="filterCat('Lips', this)">Lips 💋</button>
-    <button class="filter-btn" onclick="filterCat('Hair Accessories', this)">Hair Accessories 🎀</button>
-    <button class="filter-btn" onclick="filterCat('Resell Bundles', this)">Resell Packages 🛍️</button>
-    <button class="filter-btn" onclick="filterCat('Jewelry', this)">Jewelry 💍</button>
+   <!-- Dynamic Category Filter Buttons -->
+  <div class="filter-section" id="categoryFiltersContainer">
+    <button class="filter-btn active">Loading categories...</button>
   </div>
 
+  <!-- Product Catalog Grid -->
   <main class="products-grid" id="productsGrid"></main>
 
   <!-- Contact Us Strip -->
