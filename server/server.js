@@ -3,9 +3,30 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
+const pg = require('pg');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Force PostgreSQL to return BIGINT and NUMERIC columns as JavaScript Numbers
+pg.types.setTypeParser(20, val => parseInt(val, 10));
+pg.types.setTypeParser(1700, val => parseFloat(val));
+
+const { Pool } = pg;
+
+// PostgreSQL Connection Setup
+const DATABASE_URL = (process.env.DATABASE_URL || '').trim();
+let pool = null;
+
+if (DATABASE_URL && !DATABASE_URL.includes('YOUR_')) {
+  pool = new Pool({
+    connectionString: DATABASE_URL,
+    ssl: { rejectUnauthorized: false }
+  });
+  console.log('🐘 PostgreSQL Pool configured for Beauty Essentials!');
+} else {
+  console.log('⚠️ WARNING: DATABASE_URL is missing in Environment Variables!');
+}
 
 const ORDERS_FILE = path.join(__dirname, 'orders.json');
 const PRODUCTS_FILE = path.join(__dirname, 'products.json');
@@ -35,9 +56,7 @@ const DEFAULT_SETTINGS = {
 };
 
 function getJson(file, def) {
-  try {
-    if (fs.existsSync(file)) return JSON.parse(fs.readFileSync(file, 'utf8') || '[]');
-  } catch (e) {}
+  try { if (fs.existsSync(file)) return JSON.parse(fs.readFileSync(file, 'utf8') || '[]'); } catch (e) {}
   return def;
 }
 
@@ -45,15 +64,56 @@ function saveJson(file, data) {
   try { fs.writeFileSync(file, JSON.stringify(data, null, 2)); } catch (e) {}
 }
 
-if (!fs.existsSync(PRODUCTS_FILE)) saveJson(PRODUCTS_FILE, DEFAULT_PRODUCTS);
-if (!fs.existsSync(SETTINGS_FILE)) saveJson(SETTINGS_FILE, DEFAULT_SETTINGS);
+// Auto-Initialize Postgres Tables for Beauty Essentials
+async function initDb() {
+  if (!pool) return;
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS products (
+        id BIGINT PRIMARY KEY,
+        name TEXT, price NUMERIC, category TEXT, image TEXT, description TEXT
+      );
+      CREATE TABLE IF NOT EXISTS settings (
+        id INT PRIMARY KEY DEFAULT 1,
+        data JSONB
+      );
+      CREATE TABLE IF NOT EXISTS orders (
+        reference TEXT PRIMARY KEY,
+        amount NUMERIC, customer_email TEXT, customer_name TEXT,
+        phone TEXT, address TEXT, items TEXT, status TEXT,
+        delivery_note TEXT, is_direct_momo BOOLEAN, paid_at TEXT
+      );
+    `);
+
+    const pCheck = await pool.query('SELECT COUNT(*) FROM products');
+    if (Number(pCheck.rows[0].count) === 0) {
+      for (const p of DEFAULT_PRODUCTS) {
+        await pool.query(
+          `INSERT INTO products (id, name, price, category, image, description)
+           VALUES ($1, $2, $3, $4, $5, $6) ON CONFLICT DO NOTHING`,
+          [p.id, p.name, p.price, p.category, p.image, p.description || '']
+        );
+      }
+    }
+
+    const sCheck = await pool.query('SELECT COUNT(*) FROM settings');
+    if (Number(sCheck.rows[0].count) === 0) {
+      await pool.query(`INSERT INTO settings (id, data) VALUES (1, $1) ON CONFLICT DO NOTHING`, [JSON.stringify(DEFAULT_SETTINGS)]);
+    }
+    console.log('✅ Beauty Essentials PostgreSQL Tables Ready!');
+  } catch (err) {
+    console.error('❌ DB Init Error:', err.message);
+  }
+}
+
+initDb();
 
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
-// No-cache header middleware for live API responses
+// No-Cache Middleware
 function noCache(req, res, next) {
   res.header('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.header('Pragma', 'no-cache');
@@ -61,47 +121,97 @@ function noCache(req, res, next) {
   next();
 }
 
-app.get('/api/products', noCache, (req, res) => res.json(getJson(PRODUCTS_FILE, DEFAULT_PRODUCTS)));
-app.get('/api/settings', noCache, (req, res) => res.json(getJson(SETTINGS_FILE, DEFAULT_SETTINGS)));
+// Diagnostic Endpoint
+app.get('/api/db-check', async (req, res) => {
+  if (!pool) return res.json({ connected: false, reason: 'DATABASE_URL is missing' });
+  try {
+    const q = await pool.query('SELECT COUNT(*) FROM products');
+    res.json({ connected: true, message: 'Beauty Essentials PostgreSQL Database is Live! 🐘', productCount: Number(q.rows[0].count) });
+  } catch (err) {
+    res.json({ connected: false, error: err.message });
+  }
+});
+
+app.get('/api/products', noCache, async (req, res) => {
+  if (pool) {
+    try {
+      const q = await pool.query('SELECT id, name, price, category, image, description FROM products ORDER BY id DESC');
+      if (q.rows.length) return res.json(q.rows);
+    } catch(e) {}
+  }
+  res.json(getJson(PRODUCTS_FILE, DEFAULT_PRODUCTS));
+});
+
+app.get('/api/settings', noCache, async (req, res) => {
+  if (pool) {
+    try {
+      const q = await pool.query('SELECT data FROM settings WHERE id = 1');
+      if (q.rows.length) return res.json(q.rows[0].data);
+    } catch(e) {}
+  }
+  res.json(getJson(SETTINGS_FILE, DEFAULT_SETTINGS));
+});
 
 // Track order lookup
-app.get('/api/orders/:ref', noCache, (req, res) => {
+app.get('/api/orders/:ref', noCache, async (req, res) => {
   const ref = (req.params.ref || '').trim();
-  const orders = getJson(ORDERS_FILE, []);
-  const order = orders.find(o => o.reference && o.reference.toLowerCase() === ref.toLowerCase());
+  let order = null;
+
+  if (pool) {
+    try {
+      const q = await pool.query('SELECT reference, amount, customer_email AS "customerEmail", customer_name AS "customerName", phone, address, items, status, delivery_note AS "deliveryNote", is_direct_momo AS "isDirectMomo", paid_at AS "paidAt" FROM orders WHERE LOWER(reference) = LOWER($1)', [ref]);
+      order = q.rows[0];
+    } catch(e) {}
+  }
+
+  if (!order) {
+    const orders = getJson(ORDERS_FILE, []);
+    order = orders.find(o => o.reference && o.reference.toLowerCase() === ref.toLowerCase());
+  }
+
   if (order) return res.json({ success: true, order });
   res.status(404).json({ success: false, message: 'Order not found' });
 });
 
-// Direct MoMo checkout
-app.post('/api/payment/direct-momo', (req, res) => {
-  const { name, email, phone, address, transactionId, amount, itemsSummary, cartItems } = req.body;
+// Direct MoMo Checkout Endpoint
+app.post('/api/payment/direct-momo', async (req, res) => {
+  const { name, email, phone, address, transactionId, amount, itemsSummary } = req.body;
   if (!name || !phone || !transactionId || !amount) {
     return res.status(400).json({ success: false, message: 'Missing required fields.' });
   }
 
-  const orders = getJson(ORDERS_FILE, []);
+  const ref = String(transactionId).trim();
   const newOrder = {
-    reference: String(transactionId).trim(),
+    reference: ref,
     amount: Number(amount),
     customerEmail: email || 'N/A',
     customerName: name,
     phone: phone,
     address: address || 'Accra, Ghana',
     items: itemsSummary || 'Beauty order',
-    cartItems: cartItems || [],
     status: 'Awaiting MoMo Verification',
     deliveryNote: 'Order received. Waiting for MoMo payment verification.',
+    isDirectMomo: true,
     paidAt: new Date().toISOString()
   };
 
-  const exists = orders.find(o => o.reference.toLowerCase() === newOrder.reference.toLowerCase());
-  if (!exists) {
+  if (pool) {
+    try {
+      await pool.query(`
+        INSERT INTO orders (reference, amount, customer_email, customer_name, phone, address, items, status, delivery_note, is_direct_momo, paid_at)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        ON CONFLICT (reference) DO NOTHING
+      `, [ref, newOrder.amount, newOrder.customerEmail, newOrder.customerName, newOrder.phone, newOrder.address, newOrder.items, newOrder.status, newOrder.deliveryNote, true, newOrder.paidAt]);
+    } catch(e) {}
+  }
+
+  let orders = getJson(ORDERS_FILE, []);
+  if (!orders.find(o => o.reference.toLowerCase() === ref.toLowerCase())) {
     orders.push(newOrder);
     saveJson(ORDERS_FILE, orders);
   }
 
-  res.json({ success: true, reference: newOrder.reference });
+  res.json({ success: true, reference: ref });
 });
 
 function verifyAdmin(req, res, next) {
@@ -111,45 +221,82 @@ function verifyAdmin(req, res, next) {
   next();
 }
 
-app.post('/api/admin/orders', verifyAdmin, (req, res) => {
+app.post('/api/admin/orders', verifyAdmin, async (req, res) => {
+  if (pool) {
+    try {
+      const q = await pool.query('SELECT reference, amount, customer_email AS "customerEmail", customer_name AS "customerName", phone, address, items, status, delivery_note AS "deliveryNote", is_direct_momo AS "isDirectMomo", paid_at AS "paidAt" FROM orders ORDER BY paid_at DESC');
+      return res.json({ success: true, orders: q.rows });
+    } catch(e) {}
+  }
   res.json({ success: true, orders: getJson(ORDERS_FILE, []).reverse() });
 });
 
-app.post('/api/admin/update-progress', verifyAdmin, (req, res) => {
+app.post('/api/admin/update-progress', verifyAdmin, async (req, res) => {
   const { reference, status, deliveryNote } = req.body;
-  const orders = getJson(ORDERS_FILE, []);
-  const order = orders.find(o => o.reference && o.reference.toLowerCase() === String(reference || '').toLowerCase());
-  if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
+  const ref = String(reference || '').trim();
 
-  order.status = status || order.status;
-  order.deliveryNote = deliveryNote || order.deliveryNote || '';
-  order.updatedAt = new Date().toISOString();
-  saveJson(ORDERS_FILE, orders);
+  if (pool) {
+    try {
+      await pool.query('UPDATE orders SET status = $1, delivery_note = $2 WHERE LOWER(reference) = LOWER($3)', [status, deliveryNote || '', ref]);
+    } catch(e) {}
+  }
+
+  let orders = getJson(ORDERS_FILE, []);
+  let order = orders.find(o => o.reference && o.reference.toLowerCase() === ref.toLowerCase());
+  if (order) {
+    order.status = status || order.status;
+    order.deliveryNote = deliveryNote || '';
+    saveJson(ORDERS_FILE, orders);
+  }
+
   res.json({ success: true, message: 'Order progress updated' });
 });
 
-app.post('/api/admin/products/save', verifyAdmin, (req, res) => {
-  let products = getJson(PRODUCTS_FILE, DEFAULT_PRODUCTS);
+app.post('/api/admin/products/save', verifyAdmin, async (req, res) => {
   const p = req.body.product;
+  const prodId = p.id ? Number(p.id) : Date.now();
+
+  if (pool) {
+    try {
+      await pool.query(`
+        INSERT INTO products (id, name, price, category, image, description)
+        VALUES ($1, $2, $3, $4, $5, $6)
+        ON CONFLICT (id) DO UPDATE SET
+          name = EXCLUDED.name, price = EXCLUDED.price, category = EXCLUDED.category,
+          image = EXCLUDED.image, description = EXCLUDED.description
+      `, [prodId, p.name, Number(p.price), p.category, p.image, p.description || '']);
+    } catch(e) {}
+  }
+
+  let products = getJson(PRODUCTS_FILE, DEFAULT_PRODUCTS);
   if (p.id) {
     const i = products.findIndex(x => x.id === Number(p.id));
-    if (i !== -1) products[i] = { ...products[i], ...p, id: Number(p.id), price: Number(p.price) };
+    if (i !== -1) products[i] = { ...products[i], id: prodId, name: p.name, price: Number(p.price), category: p.category, image: p.image, description: p.description || '' };
   } else {
-    products.push({ ...p, id: Date.now(), price: Number(p.price) });
+    products.push({ id: prodId, name: p.name, price: Number(p.price), category: p.category, image: p.image, description: p.description || '' });
   }
   saveJson(PRODUCTS_FILE, products);
+
   res.json({ success: true });
 });
 
-app.post('/api/admin/products/delete', verifyAdmin, (req, res) => {
-  const products = getJson(PRODUCTS_FILE, DEFAULT_PRODUCTS).filter(p => p.id !== Number(req.body.productId));
-  saveJson(PRODUCTS_FILE, products);
+app.post('/api/admin/products/delete', verifyAdmin, async (req, res) => {
+  const pId = Number(req.body.productId);
+  if (pool) {
+    try { await pool.query('DELETE FROM products WHERE id = $1', [pId]); } catch(e) {}
+  }
+  saveJson(PRODUCTS_FILE, getJson(PRODUCTS_FILE, DEFAULT_PRODUCTS).filter(p => p.id !== pId));
   res.json({ success: true });
 });
 
-app.post('/api/admin/settings/save', verifyAdmin, (req, res) => {
-  const current = getJson(SETTINGS_FILE, DEFAULT_SETTINGS);
-  saveJson(SETTINGS_FILE, { ...current, ...req.body.settings });
+app.post('/api/admin/settings/save', verifyAdmin, async (req, res) => {
+  const s = req.body.settings;
+  if (pool) {
+    try {
+      await pool.query('INSERT INTO settings (id, data) VALUES (1, $1) ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data', [JSON.stringify(s)]);
+    } catch(e) {}
+  }
+  saveJson(SETTINGS_FILE, { ...getJson(SETTINGS_FILE, DEFAULT_SETTINGS), ...s });
   res.json({ success: true });
 });
 
